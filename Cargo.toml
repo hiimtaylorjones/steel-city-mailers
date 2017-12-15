@@ -4,10 +4,7 @@ version = "0.1.0"
 authors = ["hiimtaylorjones <taylorjonessoftware@gmail.com>"]
 
 [dependencies]
-native-tls = "0.1"
-tokio-tls = "0.1"
-futures = "0.1"
-tokio-io = "0.1"
+hyper = "0.11.8"
+hyper-tls = "0.1.2"
 tokio-core = "0.1"
-tokio-proto = "0.1"
-tokio-service = "0.1"
+futures = "0.1"
