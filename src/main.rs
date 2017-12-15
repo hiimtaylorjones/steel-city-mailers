@@ -4,6 +4,7 @@ extern crate native_tls;
 extern crate tokio_core;
 extern crate tokio_service;
 extern crate tokio_tls;
+extern crate dotenv;
 
 use std::io;
 use std::sync::Arc;
@@ -17,6 +18,7 @@ use tokio_core::net::TcpStream;
 use tokio_core::reactor::Core;
 use tokio_service::Service;
 use tokio_tls::{TlsConnectorExt, TlsStream};
+use std::env;
 
 fn main() {
     let mut core = Core::new().unwrap();
@@ -34,15 +36,17 @@ fn main() {
                     .connector(connector)
                     .build(&core.handle());
 
-    // Send off a request for Rust's home page, fetched over TLS. Note that
-    // this'll just fetch the headers, the body won't be downloaded yet.
-    let uri = "https://www.rust-lang.org/".parse().unwrap();
+    dotenv::dotenv().expect("Failed to read .env file");
+    let mailchimp_url = env::var("MAILCHIMP_URL").expect("MAILCHIMP_URL not found in url");
+    let mailchimp_api_key = env::var("MAILCHIMP_API_KEY").expect("MAILCHIMP_API_KEY not found in url");
+
+    let uri = mailchimp_url.parse().unwrap();
     let req = Request::new(Method::Get, uri);
     let response = core.run(client.request(req)).unwrap();
     println!("{} {}", response.version(), response.status());
-    for header in response.headers().iter() {
-        print!("{}", header);
-    }
+    // for header in response.headers().iter() {
+    //     print!("{}", header);
+    // }
 
     // Finish off our request by fetching all of the body.
     let body = core.run(response.body().concat2()).unwrap();
