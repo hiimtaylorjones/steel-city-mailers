@@ -1,14 +1,3 @@
-
-//! A sample Hyper client using this crate for TLS connections
-//!
-//! You can test this out by running:
-//!
-//!     cargo run --example hyper-client
-//!
-//! and on stdout you should see rust-lang.org's headers and web page.
-//!
-//! Note that there's also the `hyper-tls` crate which may be useful.
-
 extern crate futures;
 extern crate hyper;
 extern crate native_tls;
