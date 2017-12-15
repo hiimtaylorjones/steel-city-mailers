@@ -11,8 +11,11 @@ use std::sync::Arc;
 
 use futures::future::{err, Future};
 use futures::stream::Stream;
+
 use hyper::client::HttpConnector;
 use hyper::{Client, Request, Method, Uri};
+use hyper::header::{Connection, Headers, Authorization, Basic};
+
 use native_tls::TlsConnector;
 use tokio_core::net::TcpStream;
 use tokio_core::reactor::Core;
@@ -41,12 +44,24 @@ fn main() {
     let mailchimp_api_key = env::var("MAILCHIMP_API_KEY").expect("MAILCHIMP_API_KEY not found in url");
 
     let uri = mailchimp_url.parse().unwrap();
-    let req = Request::new(Method::Get, uri);
+
+    let mut req = Request::new(Method::Get, uri);
+    req.headers_mut().set(
+       Authorization(
+           Basic {
+               username: "somestring".to_owned(),
+               password: Some(mailchimp_api_key).to_owned()
+           }
+       )
+    );
+    for header in req.headers().iter() {
+        print!("{}", header);
+    }
     let response = core.run(client.request(req)).unwrap();
     println!("{} {}", response.version(), response.status());
-    // for header in response.headers().iter() {
-    //     print!("{}", header);
-    // }
+    for header in response.headers().iter() {
+        print!("{}", header);
+    }
 
     // Finish off our request by fetching all of the body.
     let body = core.run(response.body().concat2()).unwrap();
@@ -65,17 +80,11 @@ impl Service for HttpsConnector {
     type Future = Box<Future<Item = Self::Response, Error = io::Error>>;
 
     fn call(&self, uri: Uri) -> Self::Future {
-        // Right now this is intended to showcase `https`, but you could
-        // also adapt this to return something like `MaybeTls<T>` where
-        // some clients resolve to TLS streams (https) and others resolve
-        // to normal TCP streams (http)
         if uri.scheme() != Some("https") {
             return err(io::Error::new(io::ErrorKind::Other,
                                       "only works with https")).boxed()
         }
 
-        // Look up the host that we're connecting to as we're going to validate
-        // this as part of the TLS handshake.
         let host = match uri.host() {
             Some(s) => s.to_string(),
             None =>  {
@@ -84,9 +93,6 @@ impl Service for HttpsConnector {
             }
         };
 
-        // Delegate to the standard `HttpConnector` type to create a connected
-        // TCP socket. Once we've got that socket initiate the TLS handshake
-        // with the host name that's provided in the URI we extracted above.
         let tls_cx = self.tls.clone();
         Box::new(self.http.call(uri).and_then(move |tcp| {
             tls_cx.connect_async(&host, tcp)
