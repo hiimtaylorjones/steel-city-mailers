@@ -1,0 +1,6 @@
+[package]
+name = "steel-city-mailers"
+version = "0.1.0"
+authors = ["hiimtaylorjones <taylorjonessoftware@gmail.com>"]
+
+[dependencies]
