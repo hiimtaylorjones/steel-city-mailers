@@ -29,9 +29,9 @@ fn main() {
     // Create a custom "connector" for Hyper which will route connections
     // through the `TlsConnector` we create here after routing them through
     // `HttpConnector` first.
-    let tls_cx = TlsConnector::builder().unwrap().build().unwrap();
+    let tls_connector = TlsConnector::builder().unwrap().build().unwrap();
     let mut connector = HttpsConnector {
-        tls: Arc::new(tls_cx),
+        tls: Arc::new(tls_connector),
         http: HttpConnector::new(2, &core.handle()),
     };
     connector.http.enforce_http(false);
@@ -40,8 +40,9 @@ fn main() {
                     .build(&core.handle());
 
     dotenv::dotenv().expect("Failed to read .env file");
-    let mailchimp_url = env::var("MAILCHIMP_URL").expect("MAILCHIMP_URL not found in url");
-    let mailchimp_api_key = env::var("MAILCHIMP_API_KEY").expect("MAILCHIMP_API_KEY not found in url");
+    let mailchimp_url = env::var("MAILCHIMP_URL").expect("Mailchimp Server Url not found in config");
+    let mailchimp_api_key = env::var("MAILCHIMP_API_KEY").expect("Mailchimp API Key not found in config");
+    let mailchimp_username = env::var("MAILCHIMP_USERNAME").expect("Mailchimp Username not found in config");
 
     let uri = mailchimp_url.parse().unwrap();
 
@@ -49,7 +50,7 @@ fn main() {
     req.headers_mut().set(
        Authorization(
            Basic {
-               username: "somestring".to_owned(),
+               username: mailchimp_username.to_owned(),
                password: Some(mailchimp_api_key).to_owned()
            }
        )
