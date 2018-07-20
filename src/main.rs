@@ -26,27 +26,38 @@ use std::env;
 fn main() {
     let mut core = Core::new().unwrap();
 
-    // Create a custom "connector" for Hyper which will route connections
-    // through the `TlsConnector` we create here after routing them through
-    // `HttpConnector` first.
+    // Creates a TLS connector for us to better communicate with Mailchimp 
+    // in a safe and efficient way. 
     let tls_connector = TlsConnector::builder().unwrap().build().unwrap();
+    // We're also generating a HTTPS connector for the job as well.
+    // Notice how we're wrapping the TLS connector we just created in order 
+    // to insert it into the HTTPS connector 
     let mut connector = HttpsConnector {
         tls: Arc::new(tls_connector),
         http: HttpConnector::new(2, &core.handle()),
     };
+    // We're not enforcing http at the moment, but this is where would
+    // determine that enforcement.
     connector.http.enforce_http(false);
     let client = Client::configure()
                     .connector(connector)
                     .build(&core.handle());
 
+    // Check if the .env file is there or even readable.
+    // If so, we'll check for certain keys and pull them in if they exist.
+    // We need to make sure the program fails if any of these elements don't exist.
     dotenv::dotenv().expect("Failed to read .env file");
     let mailchimp_url = env::var("MAILCHIMP_URL").expect("Mailchimp Server Url not found in config");
     let mailchimp_api_key = env::var("MAILCHIMP_API_KEY").expect("Mailchimp API Key not found in config");
     let mailchimp_username = env::var("MAILCHIMP_USERNAME").expect("Mailchimp Username not found in config");
 
+    // Prep the mailchimp url for work.
     let uri = mailchimp_url.parse().unwrap();
-
     let mut req = Request::new(Method::Get, uri);
+    
+    // Set our headers for the request. We're using a basic authorization, but 
+    // I've found it easy to set whatever you want in here as long as it works 
+    // in an API client like Paw or Postman.
     req.headers_mut().set(
        Authorization(
            Basic {
@@ -55,9 +66,13 @@ fn main() {
            }
        )
     );
+
+    // Debugging for headers.
     for header in req.headers().iter() {
         print!("{}", header);
     }
+
+    // Execute our request and print out the result for debugging purposes.
     let response = core.run(client.request(req)).unwrap();
     println!("{} {}", response.version(), response.status());
     for header in response.headers().iter() {
