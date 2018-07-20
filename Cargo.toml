@@ -5,6 +5,7 @@ authors = ["hiimtaylorjones <taylorjonessoftware@gmail.com>"]
 
 [dependencies]
 hyper = "0.12.6"
+hyper-tls = "0.3.0"
 dotenv = "0.10.1"
 serde = "1.0"
 serde_derive = "1.0"
