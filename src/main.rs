@@ -5,6 +5,11 @@ extern crate tokio_core;
 extern crate tokio_service;
 extern crate tokio_tls;
 extern crate dotenv;
+extern crate serde;
+extern crate serde_json;
+
+#[macro_use]
+extern crate serde_derive;
 
 use std::io;
 use std::sync::Arc;
@@ -21,11 +26,18 @@ use tokio_core::net::TcpStream;
 use tokio_core::reactor::Core;
 use tokio_service::Service;
 use tokio_tls::{TlsConnectorExt, TlsStream};
+
 use std::env;
+
+use serde_json::{Value, Error};
 
 fn main() {
     let mut core = Core::new().unwrap();
-
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        let command = &args[1];
+    }
+        
     // Creates a TLS connector for us to better communicate with Mailchimp 
     // in a safe and efficient way. 
     let tls_connector = TlsConnector::builder().unwrap().build().unwrap();
@@ -75,13 +87,22 @@ fn main() {
     // Execute our request and print out the result for debugging purposes.
     let response = core.run(client.request(req)).unwrap();
     println!("{} {}", response.version(), response.status());
-    for header in response.headers().iter() {
-        print!("{}", header);
-    }
+
+    let response_body = response.body();
+    let response = core.run(client.request(req)).unwrap();
+    
 
     // Finish off our request by fetching all of the body.
-    let body = core.run(response.body().concat2()).unwrap();
-    println!("{}", String::from_utf8_lossy(&body));
+    // let unwrapped_body = response.body().concat2();
+    // let body = core.run(unwrapped_body);
+    // let body_string = String::from_utf8_lossy(&body);
+    // let account: Account = serde_json::from_str(&body_string)?;
+    // println!("{}", v["account_name"]);
+}
+
+#[derive(Serialize, Deserialize)]
+struct Account {
+    account_name: String
 }
 
 struct HttpsConnector {
