@@ -11,9 +11,10 @@ use hyper::rt::{self, Future, Stream};
 use hyper_tls::HttpsConnector;
 
 use std::io::{self, Write};
-use std::env;
 
 use base64::{encode};
+
+mod mailchimp_config;
 
 fn main() {
 
@@ -21,9 +22,18 @@ fn main() {
     // If so, we'll check for certain keys and pull them in if they exist.
     // We need to make sure the program fails if any of these elements don't exist.
     dotenv::dotenv().expect("Failed to read .env file");
-    let mailchimp_url = env::var("MAILCHIMP_URL").expect("Mailchimp Server Url not found in config");
-    let mailchimp_api_key = env::var("MAILCHIMP_API_KEY").expect("Mailchimp API Key not found in config");
-    let mailchimp_username = env::var("MAILCHIMP_USERNAME").expect("Mailchimp Username not found in config");
+    let mailchimp_url = mailchimp_config::find_mailchimp_url();
+    let mailchimp_api_key = mailchimp_config::find_mailchimp_api_key();
+    let mailchimp_username = mailchimp_config::find_mailchimp_username();
+
+    // Merging the username and api key from our ENV together like:
+    //  username:api_key
+    // 
+    // We then encode this combination string via base64 so that we can 
+    // insert it into our Authorization header.
+    let credential_string = [mailchimp_username, mailchimp_api_key].join(":");
+    let encoded_credentials = encode(&credential_string);
+    let full_credentials = format!("Basic {}", encoded_credentials);
 
     // Creating and configuring out HTTPS connector.
     let https = HttpsConnector::new(4).expect("TLS initialization failed");
@@ -34,15 +44,6 @@ fn main() {
     let mut request = Request::default();
     // Casting our ENV mailchimp url as a Uri object
     let uri: Uri = mailchimp_url.parse().unwrap();
-
-    // Merging the username and api key from our ENV together like:
-    //  username:api_key
-    // 
-    // We then encode this combination string via base64 so that we can 
-    // insert it into our Authorization header.
-    let credential_string = [mailchimp_username, mailchimp_api_key].join(":");
-    let encoded_credentials = encode(&credential_string);
-    let full_credentials = format!("Basic {}", encoded_credentials);
 
     // Since our request is a mutex, we set our attributes like this.
     *request.method_mut() = Method::GET;
