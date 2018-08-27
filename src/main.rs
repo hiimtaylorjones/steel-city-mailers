@@ -5,7 +5,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate base64;
 
-use hyper::{Client};
+use hyper::{Client, Body};
 
 use hyper::rt::{self, Future, Stream};
 use hyper_tls::HttpsConnector;
@@ -37,14 +37,12 @@ fn main() {
     let full_credentials = format!("Basic {}", encoded_credentials);
 
     // Creating and configuring out HTTPS connector.
-    let https = HttpsConnector::new(4).expect("TLS initialization failed");
-    let client = Client::builder()
-        .build::<_, hyper::Body>(https);
-
+    
+    let client = generate_client();
     let request = authorization::set_request_authorization(&full_credentials, &mailchimp_url);
 
     println!("Requesting....");
-    let post = client.request(request).and_then(|res| {
+    let get = client.request(request).and_then(|res| {
         println!("Response: {}", res.status());
         println!("Headers: {:#?}", res.headers());
 
@@ -68,6 +66,12 @@ fn main() {
     });
 
     // The request is executed here via rt::run. 
-    rt::run(post);
+    rt::run(get);
 }
 
+fn generate_client() -> Client<HttpsConnector<hyper::client::HttpConnector>> {
+    let https = HttpsConnector::new(4).expect("TLS initialization failed");
+    let client = Client::builder()
+        .build::<_, Body>(https);
+    return client;
+}
